@@ -1,1 +1,31 @@
-{% extends 'base.html' %}{% block title %}Create form · FeedbackHub{% endblock %}{% block content %}<section class="wrap narrow"><a href="{{ url_for('admin_dashboard') }}">← Back to dashboard</a><span class="eyebrow">FORM BUILDER</span><h1>Create a feedback form</h1><p>New forms are saved as drafts.</p><form method="post" class="panel" id="builder">{{ csrf_token() }}<label>Form title<input name="title" maxlength="120" required placeholder="Course feedback"></label><label>Description<textarea name="description" rows="3"></textarea></label><h2>Questions</h2><div id="questions"><div class="question-row"><input name="question_text[]" required placeholder="Write your question"><select name="question_kind[]"><option value="rating">1–5 rating</option><option value="text">Written answer</option></select></div></div><button type="button" class="btn outline" id="add">+ Add question</button><button class="btn">Save draft →</button></form></section>{% endblock %}{% block scripts %}<script>document.getElementById('add').addEventListener('click',()=>{const box=document.getElementById('questions');if(box.children.length>=30)return alert('Maximum 30 questions');const row=document.createElement('div');row.className='question-row';row.innerHTML='<input name="question_text[]" required placeholder="Write your question"><select name="question_kind[]"><option value="rating">1–5 rating</option><option value="text">Written answer</option></select><button type="button" class="link-button">Remove</button>';row.querySelector('button').onclick=()=>row.remove();box.append(row);});</script>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Create a feedback form · FeedbackHub{% endblock %}
+{% block content %}
+<section class="wrap narrow">
+  <a class="back-link" href="{{ url_for('admin_dashboard') }}">← Back to dashboard</a>
+  <span class="eyebrow">FORM BUILDER</span>
+  <h1>Create a feedback form</h1>
+  <p class="page-intro">Give your form a clear title, add your questions, then publish it when you're ready.</p>
+  <form method="post" class="panel builder-panel" id="builder">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="title">Form title</label>
+    <input id="title" name="title" maxlength="120" required placeholder="e.g. Course feedback">
+    <label for="description">Short description <span class="optional">(optional)</span></label>
+    <textarea id="description" name="description" rows="3" maxlength="1000" placeholder="Tell students what this feedback is about."></textarea>
+    <div class="builder-heading">
+      <div><h2>Questions</h2><p>Add up to 30 questions to your form.</p></div>
+      <span class="question-count" id="question-count">1 question</span>
+    </div>
+    <div id="questions">
+      <div class="question-row">
+        <input name="question_text[]" required maxlength="300" placeholder="Write your first question" aria-label="Question 1">
+        <select name="question_kind[]" aria-label="Answer type"><option value="rating">1–5 rating</option><option value="text">Written answer</option></select>
+      </div>
+    </div>
+    <button type="button" class="btn btn-quiet" data-add-question>＋ Add a question</button>
+    <div class="form-actions">
+      <button class="btn" type="submit">Save as draft <span aria-hidden="true">→</span></button>
+    </div>
+  </form>
+</section>
+{% endblock %}
