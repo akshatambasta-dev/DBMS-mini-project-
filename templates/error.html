@@ -1,1 +1,10 @@
-{% extends 'base.html' %}{% block title %}{{ code }} · FeedbackHub{% endblock %}{% block content %}<section class="wrap narrow"><span class="eyebrow">ERROR {{ code }}</span><h1>Something got in the way.</h1><p>{{ message }}</p><a class="btn" href="{{ url_for('home') }}">Back home</a></section>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ code }} · FeedbackHub{% endblock %}
+{% block content %}
+<section class="wrap narrow error-page">
+  <span class="eyebrow">ERROR {{ code }}</span>
+  <h1>We couldn't find a way <em>through.</em></h1>
+  <p class="page-intro">{{ message }}</p>
+  <a class="btn" href="{{ url_for('home') }}">Return to FeedbackHub <span aria-hidden="true">→</span></a>
+</section>
+{% endblock %}
