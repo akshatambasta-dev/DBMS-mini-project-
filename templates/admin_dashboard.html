@@ -1,44 +1,141 @@
 {% extends 'base.html' %}
-{% block title %}Admin dashboard · FeedbackHub{% endblock %}
+{% block title %}Admin Dashboard · FeedbackHub{% endblock %}
 {% block content %}
 <section class="wrap">
   <div class="page-head">
-    <div><span class="eyebrow">ADMINISTRATION</span><h1>Listen. Learn. <em>Lead.</em></h1><p class="page-intro">Manage your feedback forms and see how your community is responding.</p></div>
-    <a class="btn" href="{{ url_for('create_form') }}">＋ Create a form</a>
+    <div>
+      <span class="eyebrow">ADMINISTRATION</span>
+      <h1>Listen. Learn. <em>Lead.</em></h1>
+      <p class="page-intro">Manage your feedback forms, monitor response volumes, and evaluate community ratings.</p>
+    </div>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('create_form') }}">＋ Create a form</a>
+    </div>
   </div>
+
   <div class="stats dashboard-stats">
-    <div><b>{{ stats.students }}</b><span>Students</span></div>
+    <div><b>{{ stats.students }}</b><span>Active students</span></div>
     <div><b>{{ stats.forms }}</b><span>Total forms</span></div>
     <div><b>{{ stats.responses }}</b><span>Submissions</span></div>
     <div><b>{{ '%.1f'|format(stats.average) }}/5</b><span>Average rating</span></div>
   </div>
-  <div class="section-heading"><div><span class="eyebrow">YOUR WORKSPACE</span><h2>Feedback forms</h2></div><a class="text-link" href="{{ url_for('analytics') }}">View insights →</a></div>
+
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">YOUR WORKSPACE</span>
+      <h2>Feedback forms</h2>
+    </div>
+    <a class="text-link" href="{{ url_for('analytics') }}">View deep insights →</a>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="table-toolbar">
+    <div class="filter-pills" role="tablist" aria-label="Filter forms by status">
+      <button type="button" class="filter-pill active" data-filter="all">All forms</button>
+      <button type="button" class="filter-pill" data-filter="published">Published</button>
+      <button type="button" class="filter-pill" data-filter="draft">Drafts</button>
+      <button type="button" class="filter-pill" data-filter="closed">Closed</button>
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="formSearchInput" placeholder="Filter forms by title..." aria-label="Search forms">
+    </div>
+  </div>
+
   <div class="panel table-scroll">
-    <table>
-      <thead><tr><th>Form</th><th>Status</th><th>Responses</th><th>Manage status</th></tr></thead>
+    <table id="formsTable">
+      <thead>
+        <tr>
+          <th>Form title</th>
+          <th>Status</th>
+          <th>Responses</th>
+          <th>Date created</th>
+          <th>Manage status</th>
+        </tr>
+      </thead>
       <tbody>
       {% for form in forms %}
-        <tr>
-          <td><b>{{ form.title }}</b></td>
-          <td><span class="pill pill-{{ form.status }}">{{ form.status|title }}</span></td>
-          <td>{{ form.responses }}</td>
+        <tr data-status="{{ form.status }}" data-title="{{ form.title|lower }}">
           <td>
-            <form method="post" action="{{ url_for('update_form_status',form_id=form.id) }}" class="status-form">
+            <div class="table-title-cell">
+              <b>{{ form.title }}</b>
+              {% if form.description %}
+                <small class="text-muted">{{ form.description[:60] }}{% if form.description|length > 60 %}...{% endif %}</small>
+              {% endif %}
+            </div>
+          </td>
+          <td><span class="pill pill-{{ form.status }}">{{ form.status|title }}</span></td>
+          <td>
+            <span class="response-count-badge">{{ form.responses }}</span>
+          </td>
+          <td><small class="text-muted">{{ form.created_at[:10] }}</small></td>
+          <td>
+            <form method="post" action="{{ url_for('update_form_status', form_id=form.id) }}" class="status-form">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <select name="status" aria-label="Status for {{ form.title }}">
                 <option value="draft" {% if form.status == 'draft' %}selected{% endif %}>Draft</option>
                 <option value="published" {% if form.status == 'published' %}selected{% endif %}>Published</option>
                 <option value="closed" {% if form.status == 'closed' %}selected{% endif %}>Closed</option>
               </select>
-              <button class="btn btn-small" type="submit">Save</button>
+              <button class="btn btn-small" type="submit">Update</button>
             </form>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="4" class="empty-cell">No forms yet. Create your first feedback form to get started.</td></tr>
+        <tr><td colspan="5" class="empty-cell">No forms yet. Create your first feedback form to get started.</td></tr>
       {% endfor %}
       </tbody>
     </table>
+    <div id="noResultsMsg" class="empty-cell" style="display: none;">No forms matching your filter.</div>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const filterPills = document.querySelectorAll('.filter-pill');
+  const searchInput = document.getElementById('formSearchInput');
+  const rows = document.querySelectorAll('#formsTable tbody tr');
+  const noResults = document.getElementById('noResultsMsg');
+
+  let currentFilter = 'all';
+
+  function applyFilters() {
+    const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const status = row.getAttribute('data-status');
+      const title = row.getAttribute('data-title') || '';
+
+      const matchesStatus = (currentFilter === 'all' || status === currentFilter);
+      const matchesQuery = (!query || title.includes(query));
+
+      if (matchesStatus && matchesQuery) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (noResults) {
+      noResults.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
+    }
+  }
+
+  filterPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      filterPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      currentFilter = pill.getAttribute('data-filter');
+      applyFilters();
+    });
+  });
+
+  if (searchInput) {
+    searchInput.addEventListener('input', applyFilters);
+  }
+});
+</script>
 {% endblock %}

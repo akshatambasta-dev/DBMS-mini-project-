@@ -1,34 +1,164 @@
 {% extends 'base.html' %}
-{% block title %}Insights · FeedbackHub{% endblock %}
+{% block title %}Insights & Analytics · FeedbackHub{% endblock %}
 {% block content %}
 <section class="wrap">
   <div class="page-head">
-    <div><span class="eyebrow">INSIGHTS & REPORTS</span><h1>Every response <em>has a story.</em></h1><p class="page-intro">Explore rating trends and read the comments behind the numbers.</p></div>
-    <a class="btn btn-secondary" href="{{ url_for('export_csv') }}">↓ Export responses</a>
+    <div>
+      <span class="eyebrow">INSIGHTS & REPORTS</span>
+      <h1>Every response <em>has a story.</em></h1>
+      <p class="page-intro">Explore rating trends, question performance metrics, and qualitative feedback.</p>
+    </div>
+    <div class="actions">
+      <a class="btn btn-secondary" href="{{ url_for('export_csv') }}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Export responses (CSV)
+      </a>
+      <a class="btn btn-quiet" href="{{ url_for('admin_dashboard') }}">Back to dashboard</a>
+    </div>
   </div>
-  <div class="panel analytics-panel">
-    <div class="section-heading"><div><span class="eyebrow">RATING OVERVIEW</span><h2>Average by question</h2></div><span class="scale-note">Scale: 1 to 5</span></div>
-    {% for item in summary %}
-      <div class="average">
-        <div class="average-meta"><b>{{ item.text }}</b><span>{{ '%.1f'|format(item.average or 0) }} / 5 <small>({{ item.count }} ratings)</small></span></div>
-        <div class="track"><i style="width:{{ ((item.average or 0)/5*100)|round }}%"></i></div>
+
+  <!-- Analytics Metrics Overview -->
+  <div class="analytics-charts-grid">
+    <!-- Star Rating Breakdown Chart -->
+    <div class="panel chart-panel">
+      <div class="section-heading-inline">
+        <div>
+          <span class="eyebrow">DISTRIBUTION</span>
+          <h3>Star rating breakdown</h3>
+        </div>
+        <span class="pill pill-published">1–5 Scale</span>
       </div>
-    {% else %}
-      <p class="empty-state">Rating insights will appear here after students submit feedback.</p>
-    {% endfor %}
+      <div class="chart-container">
+        <canvas id="ratingDistChart" height="200" aria-label="Star rating distribution chart" role="img"></canvas>
+      </div>
+    </div>
+
+    <!-- Rating Averages by Question -->
+    <div class="panel analytics-panel">
+      <div class="section-heading-inline">
+        <div>
+          <span class="eyebrow">QUESTION BREAKDOWN</span>
+          <h3>Average score by question</h3>
+        </div>
+        <span class="scale-note">Target: 5.0</span>
+      </div>
+      <div class="question-averages-list">
+        {% for item in summary %}
+          <div class="average">
+            <div class="average-meta">
+              <b>{{ item.text }}</b>
+              <span>{{ '%.2f'|format(item.average or 0) }} / 5 <small>({{ item.count }} ratings)</small></span>
+            </div>
+            <div class="track"><i style="width:{{ ((item.average or 0)/5*100)|round }}%"></i></div>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <p>Rating insights will appear here after students submit feedback.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
-  <div class="section-heading comments-heading"><div><span class="eyebrow">WHAT PEOPLE ARE SAYING</span><h2>Recent written feedback</h2></div></div>
-  <div class="cards">
+
+  <!-- Qualitative Feedback Comments -->
+  <div class="section-heading comments-heading">
+    <div>
+      <span class="eyebrow">WHAT STUDENTS ARE SAYING</span>
+      <h2>Recent written feedback</h2>
+    </div>
+    <span class="pill">{{ comments|length }} comments</span>
+  </div>
+
+  <div class="cards comment-cards-grid">
     {% for item in comments %}
       <article class="comment-card">
-        <small>{{ item.title }} · {{ item.submitted_at[:16] }}</small>
+        <div class="comment-card-top">
+          <small class="comment-form-name">{{ item.title }}</small>
+          <time datetime="{{ item.submitted_at }}" class="comment-date">{{ item.submitted_at[:16] }}</time>
+        </div>
         <h3>{{ item.text }}</h3>
-        {% if item.rating %}<span class="comment-rating">{{ item.rating }} / 5</span>{% endif %}
-        <p>{{ item.comment }}</p>
+        {% if item.rating %}
+          <span class="comment-rating" aria-label="Rating: {{ item.rating }} out of 5">
+            {{ '★' * item.rating }}{{ '☆' * (5 - item.rating) }} <strong>{{ item.rating }}/5</strong>
+          </span>
+        {% endif %}
+        <p class="comment-body">{{ item.comment }}</p>
       </article>
     {% else %}
-      <article class="empty-state">Written comments will appear here once responses are submitted.</article>
+      <article class="empty-state">
+        <p>Written comments will appear here once students submit responses.</p>
+      </article>
     {% endfor %}
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const ctx = document.getElementById('ratingDistChart');
+  if (!ctx) return;
+
+  const rawDist = {
+    1: {{ distribution[1] }},
+    2: {{ distribution[2] }},
+    3: {{ distribution[3] }},
+    4: {{ distribution[4] }},
+    5: {{ distribution[5] }}
+  };
+
+  const labels = ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'];
+  const dataValues = [rawDist[1], rawDist[2], rawDist[3], rawDist[4], rawDist[5]];
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Responses',
+        data: dataValues,
+        backgroundColor: [
+          'rgba(235, 87, 87, 0.75)',
+          'rgba(242, 153, 74, 0.75)',
+          'rgba(242, 201, 76, 0.75)',
+          'rgba(74, 144, 226, 0.75)',
+          'rgba(39, 174, 96, 0.75)'
+        ],
+        borderColor: [
+          'rgba(235, 87, 87, 1)',
+          'rgba(242, 153, 74, 1)',
+          'rgba(242, 201, 76, 1)',
+          'rgba(74, 144, 226, 1)',
+          'rgba(39, 174, 96, 1)'
+        ],
+        borderWidth: 1.5,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.parsed.y} submission${ctx.parsed.y === 1 ? '' : 's'}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, precision: 0 },
+          grid: { color: 'rgba(229, 234, 243, 0.6)' }
+        },
+        x: {
+          grid: { display: false }
+        }
+      }
+    }
+  });
+});
+</script>
 {% endblock %}
