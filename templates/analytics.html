@@ -1,1 +1,34 @@
-{% extends 'base.html' %}{% block title %}Analytics · FeedbackHub{% endblock %}{% block content %}<section class="wrap"><div class="page-head"><div><span class="eyebrow">INSIGHTS & REPORTS</span><h1>Every response <em>has a story.</em></h1><p>Understand ratings and read the feedback behind them.</p></div><a class="btn outline" href="{{ url_for('export_csv') }}">↓ Export CSV</a></div><div class="panel"><h2>Question averages</h2>{% for item in summary %}<div class="average"><b>{{ item.text }}</b><span>{{ '%.1f'|format(item.average or 0) }}/5 ({{ item.count }} ratings)</span><div class="track"><i style="width:{{ ((item.average or 0)/5*100)|round }}%"></i></div></div>{% else %}<p>No rating responses yet.</p>{% endfor %}</div><h2>Recent written feedback</h2><div class="cards">{% for item in comments %}<article><small>{{ item.title }} · {{ item.submitted_at[:16] }}</small><h3>{{ item.text }}</h3>{% if item.rating %}<b>{{ item.rating }}/5</b>{% endif %}<p>{{ item.comment }}</p></article>{% else %}<p>No written comments yet.</p>{% endfor %}</div></section>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Insights · FeedbackHub{% endblock %}
+{% block content %}
+<section class="wrap">
+  <div class="page-head">
+    <div><span class="eyebrow">INSIGHTS & REPORTS</span><h1>Every response <em>has a story.</em></h1><p class="page-intro">Explore rating trends and read the comments behind the numbers.</p></div>
+    <a class="btn btn-secondary" href="{{ url_for('export_csv') }}">↓ Export responses</a>
+  </div>
+  <div class="panel analytics-panel">
+    <div class="section-heading"><div><span class="eyebrow">RATING OVERVIEW</span><h2>Average by question</h2></div><span class="scale-note">Scale: 1 to 5</span></div>
+    {% for item in summary %}
+      <div class="average">
+        <div class="average-meta"><b>{{ item.text }}</b><span>{{ '%.1f'|format(item.average or 0) }} / 5 <small>({{ item.count }} ratings)</small></span></div>
+        <div class="track"><i style="width:{{ ((item.average or 0)/5*100)|round }}%"></i></div>
+      </div>
+    {% else %}
+      <p class="empty-state">Rating insights will appear here after students submit feedback.</p>
+    {% endfor %}
+  </div>
+  <div class="section-heading comments-heading"><div><span class="eyebrow">WHAT PEOPLE ARE SAYING</span><h2>Recent written feedback</h2></div></div>
+  <div class="cards">
+    {% for item in comments %}
+      <article class="comment-card">
+        <small>{{ item.title }} · {{ item.submitted_at[:16] }}</small>
+        <h3>{{ item.text }}</h3>
+        {% if item.rating %}<span class="comment-rating">{{ item.rating }} / 5</span>{% endif %}
+        <p>{{ item.comment }}</p>
+      </article>
+    {% else %}
+      <article class="empty-state">Written comments will appear here once responses are submitted.</article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
