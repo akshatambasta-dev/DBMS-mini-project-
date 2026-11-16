@@ -1,1 +1,38 @@
-{% extends 'base.html' %}{% block title %}Sign in · FeedbackHub{% endblock %}{% block content %}<section class="auth"><div><span class="eyebrow">WELCOME BACK</span><h1>Good feedback starts with <em>good listening.</em></h1><p>Sign in to continue the conversation.</p></div><div class="panel"><h2>Sign in</h2><form method="post">{{ csrf_token() }}<label>Email address<input type="email" name="email" required></label><label>Password<input type="password" name="password" required></label><button class="btn">Sign in →</button></form><p>New to FeedbackHub? <a href="{{ url_for('register') }}">Create an account</a></p></div></section>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Sign in · FeedbackHub{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="auth-intro">
+    <span class="eyebrow">WELCOME BACK</span>
+    <h1>Good to have<br>you <em>back.</em></h1>
+    <p>Sign in to share your perspective or continue managing feedback. Every thoughtful response helps make things better.</p>
+    <div class="auth-points">
+      <span><i aria-hidden="true">✓</i> A simple, focused experience</span>
+      <span><i aria-hidden="true">✓</i> Feedback organised in one place</span>
+    </div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-card-top">
+      <span class="auth-icon" aria-hidden="true">↗</span>
+      <span class="eyebrow">YOUR FEEDBACK SPACE</span>
+    </div>
+    <h2>Sign in to FeedbackHub</h2>
+    <p class="form-intro">Enter the email address and password linked to your account.</p>
+    <form method="post" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="email">Email address</label>
+      <input id="email" type="email" name="email" placeholder="you@example.com" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      <div class="label-row">
+        <label for="password">Password</label>
+      </div>
+      <div class="password-wrap">
+        <input id="password" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+        <button class="password-toggle" type="button" data-toggle-password="password" aria-label="Show password">Show</button>
+      </div>
+      <button class="btn btn-wide" type="submit">Sign in <span aria-hidden="true">→</span></button>
+    </form>
+    <p class="auth-switch">Don't have an account? <a href="{{ url_for('register') }}">Create one</a></p>
+    <p class="auth-note">Your account determines whether you enter the student or administrator space.</p>
+  </div>
+</section>
+{% endblock %}
