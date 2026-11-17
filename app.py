@@ -107,6 +107,77 @@ def init_db():
     GROUP BY q.id;
     """)
     db.commit()
+    seed_initial_data(db)
+
+
+def seed_initial_data(db):
+    """Seed default administrator and 3 realistic sample forms if not already present."""
+    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@feedbackhub.com').strip().lower()
+    admin_password = os.environ.get('ADMIN_PASSWORD', 'AdminPassword123!')
+    admin_name = os.environ.get('ADMIN_NAME', 'System Administrator')
+
+    # 1. Ensure Admin user exists
+    admin = db.execute('SELECT id FROM users WHERE email = ?', (admin_email,)).fetchone()
+    if not admin:
+        cur = db.execute(
+            'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
+            (admin_name, admin_email, generate_password_hash(admin_password), 'admin')
+        )
+        admin_id = cur.lastrowid
+        db.commit()
+    else:
+        admin_id = admin['id']
+
+    # 2. Check if sample forms are already seeded
+    form_count = db.execute('SELECT COUNT(*) FROM forms').fetchone()[0]
+    if form_count == 0:
+        sample_forms = [
+            {
+                'title': 'Course & Instructor Feedback: DBMS (CS301)',
+                'description': 'Please share your feedback regarding course syllabus coverage, lecture clarity, and hands-on SQL laboratory assignments for Database Management Systems.',
+                'status': 'published',
+                'questions': [
+                    ('How clearly did the instructor explain core database concepts (Normalization, ER Modeling, Indexing)?', 'rating'),
+                    ('How would you rate the hands-on lab sessions and SQL query practice?', 'rating'),
+                    ('Were the textbook references and practice problem sets helpful for your understanding?', 'rating'),
+                    ('What topics did you find most challenging, and what can be improved in future lecture sessions?', 'text')
+                ]
+            },
+            {
+                'title': 'Campus Facilities & Computing Infrastructure Survey',
+                'description': 'Help campus administration evaluate and improve computer laboratory hardware, high-speed Wi-Fi connectivity, library quiet zones, and study spaces.',
+                'status': 'published',
+                'questions': [
+                    ('How satisfied are you with the computer lab workstations, software availability, and internet speed?', 'rating'),
+                    ('How would you rate library resources, study desks, and access to technical journals?', 'rating'),
+                    ('Rate the overall hygiene, cleanliness, and maintenance of academic classrooms.', 'rating'),
+                    ('What specific equipment or facilities would you like to see upgraded or added on campus?', 'text')
+                ]
+            },
+            {
+                'title': 'Student Experience & Academic Mentorship Feedback',
+                'description': 'Share your perspective on peer collaboration, career guidance workshops, extracurricular technical clubs, and faculty mentoring this semester.',
+                'status': 'published',
+                'questions': [
+                    ('How accessible and supportive were your faculty advisors and mentors when seeking academic help?', 'rating'),
+                    ('How would you rate technical workshops, hackathons, and guest speaker seminars held this term?', 'rating'),
+                    ('Rate your overall academic growth and satisfaction with student life this semester.', 'rating'),
+                    ('What suggestions or ideas do you have to make student mentorship and campus life even better?', 'text')
+                ]
+            }
+        ]
+
+        for form in sample_forms:
+            with db:
+                f_cur = db.execute(
+                    'INSERT INTO forms (title, description, created_by, status) VALUES (?, ?, ?, ?)',
+                    (form['title'], form['description'], admin_id, form['status'])
+                )
+                form_id = f_cur.lastrowid
+                db.executemany(
+                    'INSERT INTO questions (form_id, text, kind, position) VALUES (?, ?, ?, ?)',
+                    [(form_id, text, kind, idx) for idx, (text, kind) in enumerate(form['questions'])]
+                )
 
 
 def login_required(view):
